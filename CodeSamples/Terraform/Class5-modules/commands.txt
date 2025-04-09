@@ -1,0 +1,1 @@
+az storage account create  --name devops2189 --resource-group rg-terraformstate

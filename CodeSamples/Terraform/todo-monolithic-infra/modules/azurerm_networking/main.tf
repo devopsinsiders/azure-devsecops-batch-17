@@ -1,18 +1,18 @@
-resource "azurerm_virtual_network" "this" {
+resource "azurerm_virtual_network" "virtual_networks" {
   for_each = var.virtual_networks
 
-  name                           = each.value.name
-  resource_group_name            = each.value.resource_group_name
-  location                       = each.value.location
-  address_space                  = lookup(each.value, "address_space", null)
-  dns_servers                    = lookup(each.value, "dns_servers", null)
-  edge_zone                      = lookup(each.value, "edge_zone", null)
-  flow_timeout_in_minutes        = lookup(each.value, "flow_timeout_in_minutes", null)
-  private_endpoint_vnet_policies = lookup(each.value, "private_endpoint_vnet_policies", "Disabled")
-  tags                           = lookup(each.value, "tags", {})
+  name                    = each.value.name
+  resource_group_name     = each.value.resource_group_name
+  location                = each.value.location
+  address_space           = each.value.address_space
+  dns_servers             = each.value.dns_servers
+  edge_zone               = each.value.edge_zone
+  flow_timeout_in_minutes = each.value.flow_timeout_in_minutes
+  private_endpoint_vnet_policies = each.value.private_endpoint_vnet_policies
+  tags                    = each.value.tags
 
   dynamic "ip_address_pool" {
-    for_each = lookup(each.value, "ip_address_pool", [])
+    for_each = each.value.ip_address_pool
     content {
       id                     = ip_address_pool.value.id
       number_of_ip_addresses = ip_address_pool.value.number_of_ip_addresses
@@ -20,7 +20,7 @@ resource "azurerm_virtual_network" "this" {
   }
 
   dynamic "ddos_protection_plan" {
-    for_each = lookup(each.value, "ddos_protection_plan", []) != [] ? [each.value.ddos_protection_plan] : []
+    for_each = each.value.ddos_protection_plan != null ? [each.value.ddos_protection_plan] : []
     content {
       id     = ddos_protection_plan.value.id
       enable = ddos_protection_plan.value.enable
@@ -28,27 +28,21 @@ resource "azurerm_virtual_network" "this" {
   }
 
   dynamic "encryption" {
-    for_each = lookup(each.value, "encryption", []) != [] ? [each.value.encryption] : []
+    for_each = each.value.encryption != null ? [each.value.encryption] : []
     content {
       enforcement = encryption.value.enforcement
     }
   }
 
   dynamic "subnet" {
-    for_each = lookup(each.value, "subnets", [])
+    for_each = each.value.subnets
     content {
-      name                                          = subnet.value.name
-      address_prefixes                              = subnet.value.address_prefixes
-      security_group                                = lookup(subnet.value, "security_group", null)
-      default_outbound_access_enabled               = lookup(subnet.value, "default_outbound_access_enabled", null)
-      private_endpoint_network_policies             = lookup(subnet.value, "private_endpoint_network_policies", "Disabled")
-      private_link_service_network_policies_enabled = lookup(subnet.value, "private_link_service_network_policies_enabled", true)
-      route_table_id                                = lookup(subnet.value, "route_table_id", null)
-      service_endpoints                             = lookup(subnet.value, "service_endpoints", null)
-      service_endpoint_policy_ids                   = lookup(subnet.value, "service_endpoint_policy_ids", null)
+      name   = subnet.value.name
+      address_prefixes = subnet.value.address_prefixes
+      security_group   = subnet.value.security_group
 
       dynamic "delegation" {
-        for_each = lookup(subnet.value, "delegation", [])
+        for_each = subnet.value.delegation
         content {
           name = delegation.value.name
 
@@ -56,7 +50,7 @@ resource "azurerm_virtual_network" "this" {
             for_each = [delegation.value.service_delegation]
             content {
               name    = service_delegation.value.name
-              actions = lookup(service_delegation.value, "actions", null)
+              actions = service_delegation.value.actions
             }
           }
         }

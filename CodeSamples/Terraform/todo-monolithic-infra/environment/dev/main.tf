@@ -5,4 +5,5 @@ module "resource_group" {
 
 module "network" {
   source = "../../modules/azurerm_networking"
+  networks = var.networks
 }

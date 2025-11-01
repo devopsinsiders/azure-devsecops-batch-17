@@ -7,6 +7,5 @@ variable "rgs" {
   }))
 }
 
-variable "networks" {
-  
-}
+variable "networks" {}
+variable "public_ips" {}

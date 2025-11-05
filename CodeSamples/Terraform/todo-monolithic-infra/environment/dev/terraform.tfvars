@@ -22,6 +22,10 @@ networks = {
       {
         name             = "frontend-subnet"
         address_prefixes = ["10.0.1.0/24"]
+      },
+      {
+        name             = "backend-subnet"
+        address_prefixes = ["10.0.2.0/24"]
       }
     ]
   }
@@ -37,5 +41,24 @@ public_ips = {
       app = "frontend"
       env = "prod"
     }
+  }
+  app2 = {
+    name                = "pip-pilu-dev-todoapp-02"
+    resource_group_name = "rg-pilu-dev-todoapp-01"
+    location            = "centralindia"
+    allocation_method   = "Static"
+    tags = {
+      app = "frontend"
+      env = "prod"
+    }
+  }
+}
+
+
+key_vaults = {
+  kv1 = {
+    kv_name  = "kv-pilu-dev-todoapp-01"
+    location = "centralindia"
+    rg_name  = "rg-pilu-dev-todoapp-01"
   }
 }

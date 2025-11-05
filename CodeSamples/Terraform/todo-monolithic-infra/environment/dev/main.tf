@@ -12,3 +12,8 @@ module "public_ip" {
   source = "../../modules/azurerm_public_ip"
   public_ips = var.public_ips
 }
+
+module "key_vault" {
+  source = "../../modules/azurerm_key_vault"
+  key_vaults = var.key_vaults
+}

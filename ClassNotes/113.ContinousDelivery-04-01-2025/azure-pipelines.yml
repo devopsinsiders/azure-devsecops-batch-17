@@ -1,0 +1,136 @@
+trigger:
+- develop
+
+pool: Default
+
+variables:
+- group: sonar-creds
+
+stages:
+- stage: StaticCodeAnalysis
+  displayName: Static Code Analysis
+  jobs: 
+  - job: SonarQubeAnalysis
+    displayName: Static Code Analysis (SonarQube)
+    steps:
+    - task: PowerShell@2
+      inputs:
+        targetType: 'inline'
+        script: 'sonar -D sonar.host.url=https://sonarqube.devopsinsiders.com/ -D sonar.token=$(SONAR_TOKEN) -D sonar.projectKey=todo-ui-frontend'
+
+- stage: SoftwareCompositionAnalysis
+  displayName: Software Composition Analysis (Dependency Security)
+  jobs: 
+  - job: DependencyVulnerabilityScan
+    displayName: Dependency Vulnerability Scan (Retire.js)
+    steps: 
+    - task: PowerShell@2
+      displayName: Run Dependency Security Scan
+      inputs:
+        targetType: 'inline'
+        script: |
+          npm install -g retire
+          npm install
+          retire --exitwith 0
+      
+- stage: CodeQualityChecks
+  displayName: Code Quality & Linting
+  jobs:
+  - job: LintingChecks
+    displayName: Multi-Language Linting Checks
+    steps:
+    - task: PowerShell@2
+      continueOnError: true
+      displayName: JavaScript Linting (Biome)
+      inputs:
+        targetType: 'inline'
+        script: |
+          Invoke-WebRequest -Uri "https://github.com/biomejs/biome/releases/download/%40biomejs%2Fbiome%402.3.8/biome-win32-x64.exe" -OutFile "$(Agent.ToolsDirectory)/biome.exe"
+          $(Agent.ToolsDirectory)/biome.exe lint $(System.DefaultWorkingDirectory)/src/
+
+    - task: PowerShell@2
+      continueOnError: true
+      displayName: CSS Linting (Stylelint)  
+      inputs:
+        targetType: 'inline'
+        script: |
+          npm install -g stylelint
+          npm install -g stylelint-config-standard        
+          stylelint $(System.DefaultWorkingDirectory)/src --config stylelint.config.mjs
+
+    - task: PowerShell@2
+      continueOnError: true
+      displayName: YAML Linting (yamllint)    
+      inputs:
+        targetType: 'inline'
+        script: |
+          pip install --user yamllint
+          yamllint $(System.DefaultWorkingDirectory)
+
+    - task: PowerShell@2
+      continueOnError: true
+      displayName: Markdown Linting (markdownlint)      
+      inputs:
+        targetType: 'inline'
+        script: |
+          npm install -g markdownlint-cli      
+          markdownlint $(System.DefaultWorkingDirectory)/
+
+- stage: BuildAndPackage
+  displayName: Build & Artifact Packaging
+  jobs:
+  - job: ApplicationBuild
+    displayName: Application Build
+    steps:
+    - task: NodeTool@0
+      displayName: Setup Node.js Environment
+      inputs:
+        versionSource: 'spec'
+        versionSpec: '16.x'
+
+    - task: PowerShell@2
+      displayName: Install Dependencies
+      inputs:
+        targetType: 'inline'
+        script: 'npm install'
+
+    - task: PowerShell@2
+      displayName: Build Application
+      inputs:
+        targetType: 'inline'
+        script: 'npm run build'
+
+    - task: PublishPipelineArtifact@1
+      displayName: Publish Build Artifact
+      inputs:
+        targetPath: '$(System.DefaultWorkingDirectory)/build/'
+        artifact: 'todo-ui'
+        publishLocation: 'pipeline'
+
+- stage: deployToDev
+  condition: eq(variables['Build.SourceBranch'], 'refs/heads/develop')
+  displayName: Deploy To Dev VM
+  jobs:
+  - job: deploy
+    steps:
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        buildType: 'current'
+        artifactName: 'todo-ui'
+        targetPath: '$(System.DefaultWorkingDirectory)/build_artifacts'
+
+    - task: CopyFilesOverSSH@0
+      inputs:
+        sshEndpoint: 'dev-vm'
+        sourceFolder: '$(System.DefaultWorkingDirectory)/build_artifacts'
+        contents: '**'
+        targetFolder: '/home/devopsadmin/'
+        cleanTargetFolder: true
+        readyTimeout: '20000'
+
+    - task: SSH@0
+      inputs:
+        sshEndpoint: 'dev-vm'
+        runOptions: 'commands'
+        commands: 'sudo cp -r /home/devopsadmin/* /var/www/html'
+        readyTimeout: '20000'

@@ -1,0 +1,14 @@
+apiVersion: v1
+
+kind: Pod
+
+metadata:
+  name: bhakua-pod
+
+spec: 
+  containers: 
+    - name: sudarshan-nginx
+      image: nginx    
+    
+    - name: sudarshan-firefox
+      image: lscr.io/linuxserver/firefox:latest

@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: axion-ingestion-service
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       app: axion-ingestion-service
@@ -14,6 +14,10 @@ spec:
     spec:
       containers:
       - name: axion-ingestion-service
-        image: acrmicrodev567.azurecr.io/ingest:v1
+        image: acrmicrodev5678.azurecr.io/ingest:v1 
         ports:
         - containerPort: 8000
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "256Mi"
